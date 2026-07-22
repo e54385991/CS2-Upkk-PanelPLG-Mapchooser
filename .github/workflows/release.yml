@@ -1,0 +1,118 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  PROJECT_PATH: MapChooser/MapChooser/MapChooser.csproj
+  CONFIG_PATH: MapChooser/MapChooser/config.json
+  PLUGIN_NAME: MapChooser
+
+jobs:
+  build:
+    name: Build and package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore "$PROJECT_PATH"
+
+      - name: Publish plugin with runtime assets
+        run: >-
+          dotnet publish "$PROJECT_PATH"
+          --configuration Release
+          --no-restore
+          --no-self-contained
+          --output "$RUNNER_TEMP/publish"
+
+      - name: Verify publish output
+        run: |
+          set -euo pipefail
+          test -f "$RUNNER_TEMP/publish/MapChooser.dll"
+          test -n "$(find "$RUNNER_TEMP/publish/runtimes" -type f -print -quit)"
+
+      - name: Create addons package
+        id: package
+        run: |
+          set -euo pipefail
+
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            version="$GITHUB_REF_NAME"
+          else
+            version="${GITHUB_SHA::7}"
+          fi
+
+          publish_dir="$RUNNER_TEMP/publish"
+          package_root="$RUNNER_TEMP/package"
+          plugin_dir="$package_root/addons/counterstrikesharp/plugins/$PLUGIN_NAME"
+          config_dir="$package_root/addons/counterstrikesharp/configs/plugins/$PLUGIN_NAME"
+          archive_path="$RUNNER_TEMP/$PLUGIN_NAME-$version.zip"
+
+          rm -rf "$package_root"
+          rm -f "$archive_path"
+          mkdir -p "$plugin_dir" "$config_dir"
+
+          cp -a "$publish_dir/." "$plugin_dir/"
+          install -m 0644 "$CONFIG_PATH" "$config_dir/config.json"
+
+          (
+            cd "$package_root"
+            zip -q -r "$archive_path" addons
+          )
+
+          if zipinfo -1 "$archive_path" | grep -Ev '^addons/' ; then
+            echo "Package contains entries outside addons/." >&2
+            exit 1
+          fi
+
+          zipinfo -1 "$archive_path" | grep -qx "addons/counterstrikesharp/plugins/$PLUGIN_NAME/MapChooser.dll"
+          zipinfo -1 "$archive_path" | grep -q "^addons/counterstrikesharp/plugins/$PLUGIN_NAME/runtimes/"
+          zipinfo -1 "$archive_path" | grep -qx "addons/counterstrikesharp/configs/plugins/$PLUGIN_NAME/config.json"
+
+          sha256sum "$archive_path"
+          echo "archive_path=$archive_path" >> "$GITHUB_OUTPUT"
+          echo "archive_name=$PLUGIN_NAME-$version.zip" >> "$GITHUB_OUTPUT"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ steps.package.outputs.archive_path }}
+          archive: false
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create or update GitHub Release
+        if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARCHIVE_PATH: ${{ steps.package.outputs.archive_path }}
+        run: |
+          set -euo pipefail
+
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$ARCHIVE_PATH" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$GITHUB_REF_NAME" "$ARCHIVE_PATH" \
+              --verify-tag \
+              --generate-notes \
+              --title "$GITHUB_REF_NAME" \
+              --repo "$GITHUB_REPOSITORY"
+          fi

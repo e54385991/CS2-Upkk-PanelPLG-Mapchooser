@@ -1,0 +1,19 @@
+﻿{
+  "VoteStartTime": 3.0,
+  "AllowExtend": true,
+  "ExtendTimeStep": 10.0,
+  "ExtendLimit": 3,
+  "ExcludeMaps": 0,
+  "IncludeMaps": 5,
+  "IncludeCurrent": false,
+  "DontChangeRTV": true,
+  "VoteDuration": 15.0,
+  "IgnoreSpec": true,
+  "AllowRtv": true,
+  "UseGameTimeLimit": true,
+  "RTVPercent": 0.6,
+  "RTVDelay": 3.0,
+  "EnforceTimeLimit": true,
+  "ChangeMapUse_host_workshop_map": false,
+  "DisplayHudTimeleftRemaining": 0
+}
