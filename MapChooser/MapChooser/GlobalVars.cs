@@ -48,7 +48,7 @@ namespace MapChooser
 
             public bool UseGameTimeLimit { get; set; } = true;
 
-            public bool ChangeMapUse_host_workshop_map { get; set; } = false;
+            public bool ChangeMapUse_host_workshop_map { get; set; } = true;
 
             public string VoteStartSound { get; set; } = "sounds/ui/counter_beep.vsnd";
 

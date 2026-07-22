@@ -14,6 +14,6 @@
   "RTVPercent": 0.6,
   "RTVDelay": 3.0,
   "EnforceTimeLimit": true,
-  "ChangeMapUse_host_workshop_map": false,
+  "ChangeMapUse_host_workshop_map": true,
   "DisplayHudTimeleftRemaining": 0
 }
