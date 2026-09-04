@@ -50,6 +50,8 @@ namespace MapChooser
 
             public bool ChangeMapUse_host_workshop_map { get; set; } = true;
 
+            public bool CrashMapRecover { get; set; } = false;
+
             public string VoteStartSound { get; set; } = "sounds/ui/counter_beep.vsnd";
 
             public int DisplayHudTimeleftRemaining { get; set; } = 0;

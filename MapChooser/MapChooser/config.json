@@ -15,5 +15,6 @@
   "RTVDelay": 3.0,
   "EnforceTimeLimit": true,
   "ChangeMapUse_host_workshop_map": true,
+  "CrashMapRecover": false,
   "DisplayHudTimeleftRemaining": 0
 }

@@ -28,45 +28,62 @@ public partial class MapChooser : BasePlugin
         // 设置 RTV 的 UTC 时间
         g_CanRtvUtcTime = g_startTimeUtc.AddSeconds(g_RtvWaitTimeSec);
 
-        string crashMapRecoverData = string.Empty;
-        const int maxAttempts = 4;
-        int attempts = 0;
-
-        // 尝试读取恢复尝试计数
-        if (File.Exists(_AttemptFilePath))
+        if (_config.CrashMapRecover)
         {
-            DateTime lastWriteTime = File.GetLastWriteTime(_AttemptFilePath);
-            if ((DateTime.Now - lastWriteTime).TotalMinutes > 15)
+            string crashMapRecoverData = string.Empty;
+            const int maxAttempts = 4;
+            int attempts = 0;
+
+            // 尝试读取恢复尝试计数
+            if (File.Exists(_AttemptFilePath))
             {
-                // 如果文件超过 15 分钟，则删除文件
-                File.Delete(_AttemptFilePath);
-            }
-            else
-            {
-                // 安全地解析尝试计数
-                if (!int.TryParse(File.ReadAllText(_AttemptFilePath), out attempts))
+                DateTime lastWriteTime = File.GetLastWriteTime(_AttemptFilePath);
+                if ((DateTime.Now - lastWriteTime).TotalMinutes > 15)
+                {
+                    // 如果文件超过 15 分钟，则删除文件
+                    File.Delete(_AttemptFilePath);
+                }
+                else if (!int.TryParse(File.ReadAllText(_AttemptFilePath), out attempts))
                 {
                     attempts = 0;
                 }
             }
-        }
 
-        // 尝试读取崩溃地图恢复数据
-        if (File.Exists(_CrashMapRecover))
-        {
-            crashMapRecoverData = File.ReadAllText(_CrashMapRecover);
-        }
+            // 尝试读取崩溃地图恢复数据
+            if (File.Exists(_CrashMapRecover))
+            {
+                crashMapRecoverData = File.ReadAllText(_CrashMapRecover);
+            }
 
-        if (attempts < maxAttempts)
-        {
-            // 增加尝试计数并保存
-            attempts++;
-            File.WriteAllText(_AttemptFilePath, attempts.ToString());
-            Logger.LogInformation($"[MCE] 地图总计:{MapList.Count} 已启动 CrashMapRecover:{crashMapRecoverData}(attempts:{attempts}) Mapchooser-Ver:{ModuleVersion}");
+            if (attempts < maxAttempts)
+            {
+                // 增加尝试计数并保存
+                attempts++;
+                File.WriteAllText(_AttemptFilePath, attempts.ToString());
+                Logger.LogInformation($"[MCE] 地图总计:{MapList.Count} 已启动 CrashMapRecover:{crashMapRecoverData}(attempts:{attempts}) Mapchooser-Ver:{ModuleVersion}");
+            }
+            else
+            {
+                // 如果超过最大尝试次数，删除崩溃恢复文件
+                if (File.Exists(_CrashMapRecover))
+                {
+                    File.Delete(_CrashMapRecover);
+                }
+                if (File.Exists(_AttemptFilePath))
+                {
+                    File.Delete(_AttemptFilePath);
+                }
+
+                Logger.LogWarning($"[MCE] 已超过最大恢复尝试次数({attempts}/{maxAttempts}). Mapchooser-Ver:{ModuleVersion} CrashMapRecover:{crashMapRecoverData}");
+            }
+
+            if (!hotReload && File.Exists(_CrashMapRecover))
+            {
+                _CrashMapRecover_Timer = AddTimer(36.0f, () => CrashMapRecover());
+            }
         }
         else
         {
-            // 如果超过最大尝试次数，删除崩溃恢复文件
             if (File.Exists(_CrashMapRecover))
             {
                 File.Delete(_CrashMapRecover);
@@ -76,7 +93,7 @@ public partial class MapChooser : BasePlugin
                 File.Delete(_AttemptFilePath);
             }
 
-            Logger.LogWarning($"[MCE] 已超过最大恢复尝试次数({attempts}/{maxAttempts}). Mapchooser-Ver:{ModuleVersion} CrashMapRecover:{crashMapRecoverData}");
+            Logger.LogInformation("[MCE] CrashMapRecover 已根据配置关闭。");
         }
     }
 
@@ -106,14 +123,6 @@ public partial class MapChooser : BasePlugin
         {
             _workshopMapPath = Path.Combine(Server.GameDirectory, "bin/win64", workshopPathBase);
         }
-
-
-        if (!hotReload && File.Exists(_CrashMapRecover))
-        {
-            _CrashMapRecover_Timer = AddTimer(36.0f, () => CrashMapRecover());
-        }
-
-
 
         RegisterListener<Listeners.OnMapEnd>(OnMapEnd);
         RegisterListener<Listeners.OnMapStart>(OnMapStart);
@@ -261,6 +270,4 @@ public partial class MapChooser : BasePlugin
 
 
 }
-
-
 

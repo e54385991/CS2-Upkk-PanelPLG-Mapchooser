@@ -394,6 +394,9 @@ namespace MapChooser
 
         private void CrashMapRecover()
         {
+            if (!_config.CrashMapRecover)
+                return;
+
             if (!File.Exists(_CrashMapRecover))
                 return;
 
@@ -407,6 +410,15 @@ namespace MapChooser
             Logger.LogInformation($"CrashMapRecover {sMapName}");
             ExecudeChangeMap(sMapName);
         }
+
+        private void SaveCrashMapRecover(string mapName)
+        {
+            if (!_config.CrashMapRecover || string.IsNullOrWhiteSpace(mapName))
+                return;
+
+            File.WriteAllText(_CrashMapRecover, mapName);
+        }
+
         private void StartMapVote_Action()
         {
             _voteActive = true;
@@ -985,7 +997,7 @@ namespace MapChooser
 
                 if (!winner.Equals(Localizer["mapchooser.option_dont_change"]))
                 {
-                    File.WriteAllText(_CrashMapRecover, winner);
+                    SaveCrashMapRecover(winner);
                     _mapHistory.Add(winner);
                     ExecudeChangeMap(winner);
 
@@ -1059,7 +1071,7 @@ namespace MapChooser
 
                     }
 
-                    File.WriteAllText(_CrashMapRecover, winner);
+                    SaveCrashMapRecover(winner);
 
                 }
             }
