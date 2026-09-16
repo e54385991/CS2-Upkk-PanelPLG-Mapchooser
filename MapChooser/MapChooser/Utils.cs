@@ -128,6 +128,82 @@ namespace MapChooser
             return mapInfo.FileName;
         }
 
+        private static bool TryResolveMapInput(
+            string input,
+            out MapInfo? mapInfo,
+            out string normalizedInput,
+            out bool isWorkshopId,
+            out string error)
+        {
+            mapInfo = null;
+            normalizedInput = input.Trim();
+            isWorkshopId = false;
+            error = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(normalizedInput))
+            {
+                error = "地图名或 Workshop ID 不能为空。";
+                return false;
+            }
+
+            bool hasWorkshopPrefix = normalizedInput.StartsWith("ws:", StringComparison.OrdinalIgnoreCase);
+            if (hasWorkshopPrefix)
+            {
+                normalizedInput = normalizedInput[3..].Trim();
+                if (string.IsNullOrWhiteSpace(normalizedInput))
+                {
+                    error = "ws: 后必须提供有效的 Workshop ID。";
+                    return false;
+                }
+            }
+
+            if (long.TryParse(normalizedInput, out long parsedWorkshopId))
+            {
+                if (parsedWorkshopId <= 0)
+                {
+                    error = "Workshop ID 必须是大于 0 的整数。";
+                    return false;
+                }
+
+                normalizedInput = parsedWorkshopId.ToString();
+                isWorkshopId = true;
+                string workshopId = normalizedInput;
+                mapInfo = MapList.FirstOrDefault(map =>
+                    string.Equals(map.WorkshopId, workshopId, StringComparison.OrdinalIgnoreCase));
+                return true;
+            }
+
+            if (hasWorkshopPrefix)
+            {
+                error = "ws: 后必须是大于 0 的 Workshop ID。";
+                return false;
+            }
+
+            string searchInput = normalizedInput;
+            mapInfo = MapList.FirstOrDefault(map => MatchesMapField(map.Name, searchInput, false))
+                ?? MapList.FirstOrDefault(map => MatchesMapField(map.FileName, searchInput, false))
+                ?? MapList.FirstOrDefault(map => MatchesMapField(map.UpdatedName, searchInput, false))
+                ?? MapList.FirstOrDefault(map => MatchesMapField(map.Search, searchInput, false))
+                ?? MapList.FirstOrDefault(map => MatchesMapField(map.Name, searchInput, true))
+                ?? MapList.FirstOrDefault(map => MatchesMapField(map.FileName, searchInput, true))
+                ?? MapList.FirstOrDefault(map => MatchesMapField(map.UpdatedName, searchInput, true))
+                ?? MapList.FirstOrDefault(map => MatchesMapField(map.Search, searchInput, true));
+
+            return true;
+        }
+
+        private static bool MatchesMapField(string? value, string input, bool allowPartialMatch)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            return allowPartialMatch
+                ? value.Contains(input, StringComparison.OrdinalIgnoreCase)
+                : string.Equals(value, input, StringComparison.OrdinalIgnoreCase);
+        }
+
 
         public void ChangeRandomMap()
         {

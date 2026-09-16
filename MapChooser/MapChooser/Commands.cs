@@ -386,31 +386,41 @@ namespace MapChooser
         }
 
         [ConsoleCommand("css_mce_wsmap", "css_mce_wsmap")]
-        [CommandHelper(whoCanExecute: CommandUsage.CLIENT_AND_SERVER)]
+        [CommandHelper(minArgs: 1, usage: "<name|workshop_id|ws:id>", whoCanExecute: CommandUsage.CLIENT_AND_SERVER)]
         [RequiresPermissions("@css/ban")]
         public void Css_mce_wsmap(CCSPlayerController? player, CommandInfo cmd)
         {
-            string Input = cmd.GetArg(1).Trim();
-            var FindMapName = FindMapNameByWSId(Input);
-            if (string.IsNullOrEmpty(FindMapName))
+            string input = cmd.GetArg(1).Trim();
+            if (!TryResolveMapInput(input, out MapInfo? mapInfo, out string normalizedInput, out bool isWorkshopId, out string error))
             {
-                var issuedCommand = long.TryParse(Input, out var mapId) ? $"host_workshop_map {mapId}" : $"ds_workshop_changelevel {Input}";
-                cmd.ReplyToCommand($" {Input} maps.txt 没有找到关联地图. 尝试使用 {issuedCommand} ");
-
-                AddTimer(4.5F, () =>
-                {
-                    Server.ExecuteCommand(issuedCommand);
-                });
-
+                cmd.ReplyToCommand($"[MCE] 参数无效：{error} 用法：css_mce_wsmap <地图名|WSID|ws:WSID>");
+                return;
             }
-            else { 
-                ExecudeChangeMap(FindMapName);
+
+            if (mapInfo != null)
+            {
+                ExecudeChangeMap(mapInfo.FileName);
+                UT_SendAdminLog(player!, cmd.GetCommandString);
+                Logger.LogInformation("[MapChooser] css_mce_wsmap 输入 {Input} 解析为 {MapName} ({WorkshopId})", input, mapInfo.FileName, mapInfo.WorkshopId);
+                cmd.ReplyToCommand($"[MCE] 已解析 {input} -> {mapInfo.FileName}，正在使用 MapChooser 换图流程。");
+                Server.PrintToChatAll($"{Localizer["mapchooser.prefix"]} 管理员正在更换地图 {mapInfo.FileName}");
+                return;
             }
+
+            string fallbackCommand = isWorkshopId
+                ? $"host_workshop_map {normalizedInput}"
+                : $"ds_workshop_changelevel {normalizedInput.ToLowerInvariant()}";
+
+            cmd.ReplyToCommand($"[MCE] maps.txt 未找到 {input}，尝试使用 {fallbackCommand}。");
+
+            AddTimer(4.5F, () =>
+            {
+                Server.ExecuteCommand(fallbackCommand);
+            });
+
             UT_SendAdminLog(player!, cmd.GetCommandString);
-
-            cmd.ReplyToCommand($" 更换地图处理中");
-            Server.PrintToChatAll($"{Localizer["mapchooser.prefix"]} 管理员 更换地图处理中 {Input}");
-
+            Logger.LogInformation("[MapChooser] css_mce_wsmap 输入 {Input} 未在 maps.txt 中解析，执行兜底命令 {Command}", input, fallbackCommand);
+            Server.PrintToChatAll($"{Localizer["mapchooser.prefix"]} 管理员正在更换地图 {normalizedInput}");
         }
 
 
