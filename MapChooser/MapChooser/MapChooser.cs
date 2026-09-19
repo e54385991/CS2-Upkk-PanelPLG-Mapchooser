@@ -13,7 +13,7 @@ public partial class MapChooser : BasePlugin
 {
 
     public override string ModuleName { get; } = "Map Chooser";
-    public override string ModuleVersion { get; } = "2.5.1";
+    public override string ModuleVersion { get; } = "2.5.3";
     public override string ModuleDescription { get; } = "Handles map voting and map changing";
     public override string ModuleAuthor { get; } = "Retro";
 
@@ -270,4 +270,3 @@ public partial class MapChooser : BasePlugin
 
 
 }
-

@@ -22,7 +22,7 @@ csgo/addons/counterstrikesharp/configs/plugins/MapChooser/maps.txt
 
 - `css_mce_add_wsmap <地图名> <Workshop ID>`：添加 Steam 创意工坊地图；地图已存在时会更新其 Workshop ID，并请求服务器执行 `mm_download_addon`。
 - `css_mce_add_localmap <地图名[.vpk]>`：将服务器中已安装的本地 VPK 地图加入地图池，Workshop ID 记为 `0`。
-- `css_mce_wsmap <地图名|Workshop ID|ws:Workshop ID>`：立即切换到指定地图；地图存在于 `maps.txt` 时使用 MapChooser 换图流程，否则按输入类型回退到 `host_workshop_map` 或 `ds_workshop_changelevel`。
+- `css_mce_wsmap <地图名|Workshop ID|ws:Workshop ID>`：立即切换到指定地图；通过地图名从 `maps.txt` 匹配到有效 Workshop ID 后，或直接输入 Workshop ID 时，执行 `host_workshop_map`。地图名未匹配到 `maps.txt` 时回退到 `ds_workshop_changelevel`，匹配到但没有有效 Workshop ID 的本地地图使用 MapChooser 本地地图换图流程。
 
 示例：
 

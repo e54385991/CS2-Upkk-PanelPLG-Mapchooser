@@ -399,10 +399,27 @@ namespace MapChooser
 
             if (mapInfo != null)
             {
+                if (ulong.TryParse(mapInfo.WorkshopId, out ulong workshopId) && workshopId > 0)
+                {
+                    string workshopCommand = $"host_workshop_map {workshopId}";
+
+                    cmd.ReplyToCommand($"[MCE] 已解析 {input} -> {mapInfo.FileName}（WSID: {workshopId}），准备执行 {workshopCommand}。");
+
+                    AddTimer(4.5F, () =>
+                    {
+                        Server.ExecuteCommand(workshopCommand);
+                    });
+
+                    UT_SendAdminLog(player!, cmd.GetCommandString);
+                    Logger.LogInformation("[MapChooser] css_mce_wsmap 输入 {Input} 解析为 {MapName} ({WorkshopId})，执行 host_workshop_map", input, mapInfo.FileName, workshopId);
+                    Server.PrintToChatAll($"{Localizer["mapchooser.prefix"]} 管理员正在更换地图 {mapInfo.FileName}");
+                    return;
+                }
+
                 ExecudeChangeMap(mapInfo.FileName);
                 UT_SendAdminLog(player!, cmd.GetCommandString);
-                Logger.LogInformation("[MapChooser] css_mce_wsmap 输入 {Input} 解析为 {MapName} ({WorkshopId})", input, mapInfo.FileName, mapInfo.WorkshopId);
-                cmd.ReplyToCommand($"[MCE] 已解析 {input} -> {mapInfo.FileName}，正在使用 MapChooser 换图流程。");
+                Logger.LogInformation("[MapChooser] css_mce_wsmap 输入 {Input} 解析为 {MapName}，未配置有效 Workshop ID，使用 MapChooser 换图流程", input, mapInfo.FileName);
+                cmd.ReplyToCommand($"[MCE] 已解析 {input} -> {mapInfo.FileName}，未配置有效 Workshop ID，正在使用 MapChooser 换图流程。");
                 Server.PrintToChatAll($"{Localizer["mapchooser.prefix"]} 管理员正在更换地图 {mapInfo.FileName}");
                 return;
             }
